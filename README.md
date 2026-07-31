@@ -1,5 +1,9 @@
 # Logistics Support & RCA Agent
 
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Open_App-46E3B7?style=for-the-badge)](https://logistics-rca-agent.onrender.com)
+
+**Live application:** https://logistics-rca-agent.onrender.com
+
 A deployable FastAPI app with a browser interface. It turns logistics error logs and support tickets into an evidence-aware incident investigation — powered by Google Gemini.
 
 Unlike a basic log summarizer, the agent separates **observed facts** from **unverified hypotheses**, identifies missing evidence, recommends recovery actions, proposes prevention measures, and drafts a customer response that does not overclaim.
@@ -57,6 +61,8 @@ Visit **http://localhost:8000** for the browser app or **http://localhost:8000/d
 The browser includes a sample selector and a **Generate demo log** button. All bundled incidents are synthetic and generating one does not call Gemini or consume API quota.
 
 ## Free deployment on Render
+
+The current deployment is available at **[logistics-rca-agent.onrender.com](https://logistics-rca-agent.onrender.com)**.
 
 This repository includes a `Dockerfile` and `render.yaml` blueprint.
 
