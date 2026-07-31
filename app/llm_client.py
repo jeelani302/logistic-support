@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
+from app.models import RCAResponse
 from app.prompts import SYSTEM_PROMPT, build_user_message
 
 # Load variables from .env into the environment at import time
@@ -40,12 +41,12 @@ def _analyze_with_gemini(user_message: str) -> str:
 
     try:
         response = client.models.generate_content(
-            model=os.getenv("GEMINI_MODEL", "gemini-2.0-flash"),
+            model=os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite"),
             contents=user_message,
             config=types.GenerateContentConfig(
                 system_instruction=SYSTEM_PROMPT,
                 response_mime_type="application/json",  # Force JSON output
-                temperature=0.2,
+                response_schema=RCAResponse,
             ),
         )
     except Exception as exc:
@@ -100,8 +101,14 @@ def _parse_and_validate(raw_output: str, provider: str) -> dict:
         "tracking_id",
         "location",
         "issue_type",
-        "root_cause_analysis",
+        "incident_summary",
+        "observed_facts",
+        "hypotheses",
+        "missing_evidence",
+        "recommended_actions",
+        "prevention_measures",
         "draft_support_response",
+        "overall_confidence",
     }
     missing = required_keys - data.keys()
     if missing:
@@ -114,7 +121,7 @@ def _parse_and_validate(raw_output: str, provider: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Public interface (called by main.py — unchanged)
+# Public interface
 # ---------------------------------------------------------------------------
 
 def analyze_ticket(raw_text: str) -> dict:
@@ -130,7 +137,7 @@ def analyze_ticket(raw_text: str) -> dict:
 
     Returns:
         A dict with keys: tracking_id, location, issue_type,
-        root_cause_analysis, draft_support_response.
+        evidence-aware analysis, actions, prevention, and a draft response.
     """
     provider = os.getenv("LLM_PROVIDER", "gemini").lower()
     user_message = build_user_message(raw_text)
