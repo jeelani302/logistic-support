@@ -76,3 +76,16 @@ def test_webhook_flattens_ticket_and_returns_analysis(monkeypatch):
     )
     assert response.status_code == 200
     assert response.json()["observed_facts"] == expected["observed_facts"]
+
+
+def test_invalid_provider_output_does_not_leak_details(monkeypatch):
+    monkeypatch.setattr(
+        "app.main.analyze_ticket",
+        lambda raw_text: (_ for _ in ()).throw(ValueError("sensitive raw output")),
+    )
+    response = client.post(
+        "/analyze-ticket",
+        json={"raw_text": "Package PKG-1 failed at the Delhi sorting hub."},
+    )
+    assert response.status_code == 502
+    assert "sensitive raw output" not in response.json()["detail"]

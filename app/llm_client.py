@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
+from app.models import RCAResponse
 from app.prompts import SYSTEM_PROMPT, build_user_message
 
 # Load variables from .env into the environment at import time
@@ -45,6 +46,7 @@ def _analyze_with_gemini(user_message: str) -> str:
             config=types.GenerateContentConfig(
                 system_instruction=SYSTEM_PROMPT,
                 response_mime_type="application/json",  # Force JSON output
+                response_schema=RCAResponse,
             ),
         )
     except Exception as exc:

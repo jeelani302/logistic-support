@@ -88,7 +88,11 @@ def _analyze(raw_text: str) -> RCAResponse:
     except EnvironmentError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        logger.warning("Provider returned invalid structured output: %s", exc)
+        raise HTTPException(
+            status_code=502,
+            detail="The AI response could not be validated. Please retry the analysis.",
+        ) from exc
     except Exception as exc:
         logger.exception("Ticket analysis failed")
         raise HTTPException(
