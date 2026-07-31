@@ -10,6 +10,12 @@ Unlike a basic log summarizer, the agent separates **observed facts** from **unv
 
 > AI-generated analysis can be inaccurate. Review every RCA and response before using it operationally, and do not submit secrets or sensitive customer data.
 
+## Demo
+
+![Logistics RCA Agent demo](docs/logistics-rca-demo.gif)
+
+The demo uses a synthetic delivery dispute and shows the full flow from selecting a sample incident to receiving evidence-aware findings, hypotheses, missing evidence, and recommended actions.
+
 ---
 
 ## Project Structure
