@@ -99,8 +99,14 @@ def _parse_and_validate(raw_output: str, provider: str) -> dict:
         "tracking_id",
         "location",
         "issue_type",
-        "root_cause_analysis",
+        "incident_summary",
+        "observed_facts",
+        "hypotheses",
+        "missing_evidence",
+        "recommended_actions",
+        "prevention_measures",
         "draft_support_response",
+        "overall_confidence",
     }
     missing = required_keys - data.keys()
     if missing:
@@ -113,7 +119,7 @@ def _parse_and_validate(raw_output: str, provider: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Public interface (called by main.py — unchanged)
+# Public interface
 # ---------------------------------------------------------------------------
 
 def analyze_ticket(raw_text: str) -> dict:
@@ -129,7 +135,7 @@ def analyze_ticket(raw_text: str) -> dict:
 
     Returns:
         A dict with keys: tracking_id, location, issue_type,
-        root_cause_analysis, draft_support_response.
+        evidence-aware analysis, actions, prevention, and a draft response.
     """
     provider = os.getenv("LLM_PROVIDER", "gemini").lower()
     user_message = build_user_message(raw_text)

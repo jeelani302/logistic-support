@@ -17,9 +17,12 @@
     .grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:20px; }
     .card { background:color-mix(in srgb,var(--panel) 92%,transparent); border:1px solid var(--line); border-radius:20px; padding:24px; box-shadow:0 18px 60px #0005; }
     label,h2 { display:block; font-weight:750; margin:0 0 12px; }
-    textarea { width:100%; min-height:260px; resize:vertical; border:1px solid var(--line); border-radius:13px; background:#0e1118; color:var(--ink); padding:16px; font:inherit; outline:none; }
-    textarea:focus { border-color:var(--blue); box-shadow:0 0 0 3px #77bdfb22; }
+    textarea,select { width:100%; border:1px solid var(--line); border-radius:13px; background:#0e1118; color:var(--ink); padding:14px; font:inherit; outline:none; }
+    textarea { min-height:260px; resize:vertical; margin-top:14px; }
+    textarea:focus,select:focus { border-color:var(--blue); box-shadow:0 0 0 3px #77bdfb22; }
     button { width:100%; margin-top:14px; border:0; border-radius:13px; padding:14px 18px; background:var(--accent); color:#241706; font-weight:850; font-size:1rem; cursor:pointer; }
+    button.secondary { background:#252b3a; color:var(--ink); border:1px solid var(--line); }
+    .actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
     button:disabled { opacity:.55; cursor:wait; }
     .hint,.empty { color:var(--muted); }
     .meta { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:20px; }
@@ -27,6 +30,8 @@
     .meta small { display:block; color:var(--muted); }
     ul { padding-left:22px; }
     .response { border-left:3px solid var(--accent); padding-left:14px; }
+    .hypothesis { background:#0e1118; border:1px solid var(--line); border-radius:12px; padding:12px; margin:10px 0; }
+    .badge { display:inline-block; border:1px solid var(--line); border-radius:99px; padding:2px 9px; color:var(--blue); font-size:.78rem; text-transform:uppercase; }
     .error { color:#ff9d9d; }
     footer { color:var(--muted); margin-top:22px; font-size:.9rem; }
     footer a { color:var(--blue); }
@@ -38,14 +43,15 @@
   <header>
     <span class="eyebrow">Operations intelligence</span>
     <h1>Turn delivery problems into clear action.</h1>
-    <p>Paste a logistics ticket or error log. The agent extracts the incident details, identifies likely root causes, and drafts a customer-ready reply.</p>
+    <p>Separate what the evidence proves from what still needs investigation, then turn the incident into concrete operational action.</p>
   </header>
   <section class="grid">
     <form class="card" id="form">
       <label for="ticket">Ticket or error log</label>
+      <select id="samples" aria-label="Load a sample incident"><option value="">Choose a synthetic sample…</option></select>
       <textarea id="ticket" minlength="10" maxlength="10000" required>Package ID 4412 delayed at Bangalore hub due to heavy rain, webhook failed to update status.</textarea>
       <p class="hint">Do not submit passwords, payment data, or other sensitive information.</p>
-      <button id="submit" type="submit">Analyze incident</button>
+      <div class="actions"><button class="secondary" id="generate" type="button">Generate demo log</button><button id="submit" type="submit">Analyze incident</button></div>
     </form>
     <article class="card" id="result" aria-live="polite">
       <h2>Analysis</h2>
@@ -55,16 +61,22 @@
   <footer>AI output can be inaccurate—review before sending. <a href="/docs">API documentation</a></footer>
 </main>
 <script>
-const form=document.querySelector('#form'), button=document.querySelector('#submit'), result=document.querySelector('#result');
+const form=document.querySelector('#form'), button=document.querySelector('#submit'), result=document.querySelector('#result'), ticket=document.querySelector('#ticket'), samples=document.querySelector('#samples'), generate=document.querySelector('#generate');
 const esc=(value)=>String(value??'N/A').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+const list=(items)=>`<ul>${(items||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`;
+let demoLogs=[];
+fetch('/demo-logs').then(r=>r.json()).then(data=>{demoLogs=data.logs||[];samples.innerHTML='<option value="">Choose a synthetic sample…</option>'+demoLogs.map(x=>`<option value="${esc(x.id)}">${esc(x.label)}</option>`).join('');});
+samples.addEventListener('change',()=>{const selected=demoLogs.find(x=>x.id===samples.value);if(selected)ticket.value=selected.raw_text;});
+generate.addEventListener('click',async()=>{generate.disabled=true;try{const r=await fetch('/demo-logs/generate',{method:'POST'});const data=await r.json();ticket.value=data.raw_text;samples.value=data.id;}finally{generate.disabled=false;}});
 form.addEventListener('submit',async(event)=>{
   event.preventDefault(); button.disabled=true; button.textContent='Analyzing…';
   result.innerHTML='<h2>Analysis</h2><p class="empty">Reading signals and building the RCA…</p>';
   try {
-    const response=await fetch('/analyze-ticket',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({raw_text:document.querySelector('#ticket').value})});
+    const response=await fetch('/analyze-ticket',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({raw_text:ticket.value})});
     const data=await response.json();
     if(!response.ok) throw new Error(data.detail||'Analysis failed.');
-    result.innerHTML=`<h2>Analysis</h2><div class="meta"><div><small>Tracking ID</small>${esc(data.tracking_id)}</div><div><small>Location</small>${esc(data.location)}</div><div><small>Issue</small>${esc(data.issue_type)}</div></div><h3>Root causes</h3><ul>${data.root_cause_analysis.map(x=>`<li>${esc(x)}</li>`).join('')}</ul><h3>Draft response</h3><p class="response">${esc(data.draft_support_response)}</p>`;
+    const hypotheses=(data.hypotheses||[]).map(h=>`<div class="hypothesis"><span class="badge">${esc(h.confidence)} confidence</span><p>${esc(h.statement)}</p><small>Supporting evidence</small>${list(h.supporting_evidence)}</div>`).join('')||'<p class="empty">No responsible hypothesis can be made from the available evidence.</p>';
+    result.innerHTML=`<h2>Analysis <span class="badge">${esc(data.overall_confidence)} confidence</span></h2><div class="meta"><div><small>Tracking ID</small>${esc(data.tracking_id)}</div><div><small>Location</small>${esc(data.location)}</div><div><small>Issue</small>${esc(data.issue_type)}</div></div><p>${esc(data.incident_summary)}</p><h3>Observed facts</h3>${list(data.observed_facts)}<h3>Hypotheses—not confirmed causes</h3>${hypotheses}<h3>Missing evidence</h3>${list(data.missing_evidence)}<h3>Recommended actions</h3>${list(data.recommended_actions)}<h3>Prevention</h3>${list(data.prevention_measures)}<h3>Draft response</h3><p class="response">${esc(data.draft_support_response)}</p>`;
   } catch(error) { result.innerHTML=`<h2>Analysis</h2><p class="error">${esc(error.message)}</p>`; }
   finally { button.disabled=false; button.textContent='Analyze incident'; }
 });
