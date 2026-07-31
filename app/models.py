@@ -15,6 +15,7 @@ class TicketRequest(BaseModel):
     raw_text: str = Field(
         ...,
         min_length=10,
+        max_length=10_000,
         description="Raw support ticket or logistics error log to analyze.",
         examples=[
             "Package ID 4412 delayed at Bangalore hub due to heavy rain, "
@@ -36,6 +37,8 @@ class RCAResponse(BaseModel):
         description="Short label for the problem, e.g. 'Weather Delay', 'Webhook Failure'."
     )
     root_cause_analysis: List[str] = Field(
+        min_length=3,
+        max_length=3,
         description="Exactly 3 bullet-point strings explaining the root causes."
     )
     draft_support_response: str = Field(

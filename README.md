@@ -1,6 +1,8 @@
 # Logistics Support & RCA Agent
 
-A FastAPI backend that accepts raw logistics error logs or customer support tickets and returns a structured **Root Cause Analysis (RCA)** report and a draft support response — powered by Google Gemini.
+A deployable FastAPI app with a browser interface. It accepts raw logistics error logs or customer support tickets and returns a structured **Root Cause Analysis (RCA)** report and a draft support response — powered by Google Gemini.
+
+> AI-generated analysis can be inaccurate. Review every RCA and response before using it operationally, and do not submit secrets or sensitive customer data.
 
 ---
 
@@ -13,6 +15,7 @@ logistic-support/
 ├── requirements.txt
 ├── app/
 │   ├── main.py           ← FastAPI app + routes
+│   ├── static/index.html  ← Browser interface
 │   ├── models.py         ← Pydantic input/output schemas
 │   ├── llm_client.py     ← Gemini API logic
 │   └── prompts.py        ← System prompt template
@@ -47,13 +50,31 @@ uvicorn app.main:app --reload
 ```
 
 ### 5. Open the interactive docs
-Visit **http://localhost:8000/docs** in your browser. You can test the API directly from there — no extra tools needed.
+Visit **http://localhost:8000** for the browser app or **http://localhost:8000/docs** for the interactive API documentation.
+
+## Free deployment on Render
+
+This repository includes a `Dockerfile` and `render.yaml` blueprint.
+
+1. Fork or push this repository to your GitHub account.
+2. In Render, choose **New → Blueprint** and connect the repository.
+3. Render detects `render.yaml`. Enter `GEMINI_API_KEY` when prompted and create the service.
+4. Wait for the health check at `/health` to pass, then open the generated `onrender.com` URL.
+
+The blueprint selects Render's free web-service plan. Free services sleep after inactivity, so the first request after idle can take about a minute. The Gemini model defaults to `gemini-3.5-flash-lite`, which currently has a limited free API tier. Never commit the API key.
+
+## Run tests
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
 
 ---
 
 ## API Reference
 
-### `GET /`
+### `GET /health`
 Health check.
 
 ```json

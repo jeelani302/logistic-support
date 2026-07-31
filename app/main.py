@@ -7,7 +7,12 @@ Run with:
 Then visit http://localhost:8000/docs for the interactive API explorer.
 """
 
+import logging
+import os
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.llm_client import analyze_ticket
@@ -28,9 +33,15 @@ app = FastAPI(
 )
 
 # Allow any frontend (browser, React app, etc.) to call this API
+allowed_origins = [
+    origin.strip()
+    for origin in os.getenv("ALLOWED_ORIGINS", "*").split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -40,9 +51,19 @@ app.add_middleware(
 # ---------------------------------------------------------------------------
 
 
-@app.get("/", tags=["Health"])
+STATIC_DIR = Path(__file__).parent / "static"
+logger = logging.getLogger(__name__)
+
+
+@app.get("/", include_in_schema=False)
+def home():
+    """Serve the browser interface."""
+    return FileResponse(STATIC_DIR / "index.html")
+
+
+@app.get("/health", tags=["Health"])
 def health_check():
-    """Quick check that the server is running."""
+    """Deployment health check that does not call the LLM provider."""
     return {"status": "ok", "message": "Logistics RCA Agent is live 🚀"}
 
 
@@ -80,7 +101,11 @@ def analyze_ticket_endpoint(request: TicketRequest):
         raise HTTPException(status_code=502, detail=str(exc))
     except Exception as exc:
         # Any other unexpected error (network, quota, etc.)
-        raise HTTPException(status_code=503, detail=str(exc))
+        logger.exception("Ticket analysis failed")
+        raise HTTPException(
+            status_code=503,
+            detail="The analysis service is temporarily unavailable. Please try again.",
+        ) from exc
 
     # Pydantic validates that `result` matches RCAResponse before returning
     return RCAResponse(**result)

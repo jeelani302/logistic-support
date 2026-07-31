@@ -40,12 +40,11 @@ def _analyze_with_gemini(user_message: str) -> str:
 
     try:
         response = client.models.generate_content(
-            model=os.getenv("GEMINI_MODEL", "gemini-2.0-flash"),
+            model=os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite"),
             contents=user_message,
             config=types.GenerateContentConfig(
                 system_instruction=SYSTEM_PROMPT,
                 response_mime_type="application/json",  # Force JSON output
-                temperature=0.2,
             ),
         )
     except Exception as exc:
